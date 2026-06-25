@@ -468,20 +468,24 @@ body {
   </div>
 </div>
 
+<script src="data.js"></script>
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let cache = [];           // all producers from server
+let cache = [];
 let activeProd = null;
 let activeTab  = 0;
 let fEra = '', fStyle = '', fRegion = '', fSearch = '';
 const formEras   = new Set();
 const formStyles = new Set();
 
-// ── API helper ─────────────────────────────────────────────────────────────
-async function api(path, opts = {}) {
-  const r = await fetch(path, opts);
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+const LS_KEY = 'hiphop_custom_producers';
+
+// ── localStorage helpers ───────────────────────────────────────────────────
+function loadCustom() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+}
+function saveCustom(list) {
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
 }
 
 // ── Filter chips ───────────────────────────────────────────────────────────
@@ -650,19 +654,20 @@ function resetForm() {
 }
 function parseCSV(str) { return str.split(',').map(s => s.trim()).filter(Boolean); }
 
-async function submitProducer() {
+function submitProducer() {
   let ok = true;
   const name = document.getElementById('f-name').value.trim();
-  if (!name)          { document.getElementById('err-name').classList.add('on');  ok = false; }
-  else                  document.getElementById('err-name').classList.remove('on');
+  if (!name)           { document.getElementById('err-name').classList.add('on');  ok = false; }
+  else                   document.getElementById('err-name').classList.remove('on');
   if (!formEras.size)  { document.getElementById('err-era').classList.add('on');   ok = false; }
-  else                  document.getElementById('err-era').classList.remove('on');
+  else                   document.getElementById('err-era').classList.remove('on');
   if (!formStyles.size){ document.getElementById('err-style').classList.add('on'); ok = false; }
-  else                  document.getElementById('err-style').classList.remove('on');
+  else                   document.getElementById('err-style').classList.remove('on');
   if (!ok) { document.getElementById('addBody').scrollTop = 0; return; }
 
   const g = id => document.getElementById(id).value.trim();
-  const payload = {
+  const newP = {
+    id: Date.now(),
     name, alias: g('f-alias'), city: g('f-city'), bpm: g('f-bpm'),
     eras: [...formEras], styles: [...formStyles], region: g('f-region'),
     desc: g('f-desc'),
@@ -672,65 +677,41 @@ async function submitProducer() {
       { type:'クラシック（カスタム）', style:g('f-p1-style'), detail:g('f-p1-detail') },
       { type:'モダン（カスタム）',     style:g('f-p2-style'), detail:g('f-p2-detail') },
       { type:'実験的（カスタム）',     style:g('f-p3-style'), detail:g('f-p3-detail') },
-    ]
+    ],
+    custom: true,
   };
 
-  const btn = document.querySelector('.submit-btn');
-  btn.textContent = '追加中...'; btn.disabled = true;
-  try {
-    const newP = await api('/api/producers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    cache.push(newP);
-    closeAddModal();
-    render();
-    setTimeout(() => {
-      const card = document.querySelector(`[onclick="openModal(${newP.id})"]`);
-      if (card) { card.style.borderColor = 'var(--accent)'; setTimeout(() => card.style.borderColor='', 1500); }
-    }, 100);
-  } catch(e) {
-    alert('追加に失敗しました。サーバーが起動しているか確認してください。');
-  } finally {
-    btn.textContent = '追加する'; btn.disabled = false;
-  }
+  const customs = loadCustom();
+  customs.push(newP);
+  saveCustom(customs);
+  cache.push(newP);
+  closeAddModal();
+  render();
+  setTimeout(() => {
+    const card = document.querySelector(`[onclick="openModal(${newP.id})"]`);
+    if (card) { card.style.borderColor = 'var(--accent)'; setTimeout(() => card.style.borderColor='', 1500); }
+  }, 100);
 }
 
-async function deleteProducer(id) {
+function deleteProducer(id) {
   if (!confirm('このプロデューサーを削除しますか？')) return;
-  try {
-    await api(`/api/producers/${id}`, { method: 'DELETE' });
-    cache = cache.filter(p => p.id !== id);
-    closeModal();
-    render();
-  } catch(e) {
-    alert('削除に失敗しました。');
-  }
+  const customs = loadCustom().filter(p => p.id !== id);
+  saveCustom(customs);
+  cache = cache.filter(p => p.id !== id);
+  closeModal();
+  render();
 }
 
 // ── Data loading ───────────────────────────────────────────────────────────
-async function loadData() {
-  try {
-    cache = await api('/api/producers');
-    render();
-  } catch(e) {
-    document.getElementById('infoBar').textContent = '';
-    document.getElementById('grid').innerHTML = `
-      <div class="no-result">
-        ⚠️ サーバーに接続できません<br>
-        <span style="font-size:11px;margin-top:8px;display:block">
-          ターミナルで <strong>npm start</strong> を実行してください
-        </span>
-      </div>`;
-  }
+function loadData() {
+  cache = [
+    ...SEED_PRODUCERS.map(p => ({ ...p, custom: false })),
+    ...loadCustom(),
+  ];
+  render();
 }
 
-document.getElementById('infoBar').textContent = '読み込み中...';
-document.getElementById('grid').innerHTML = '<div class="no-result" style="padding:30px">⏳ データを読み込んでいます...</div>';
 loadData();
-
-// ── DUMMY anchor for edit tool (not rendered) ──────────────────────────────
 </script>
 </body>
 </html>
