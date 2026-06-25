@@ -1,0 +1,12 @@
+# SQLite DB（サーバー起動時に自動生成されます）
+producers.db
+
+# Node.js（SDカードのFAT制約のため ~/hiphop-modules にインストール済み）
+node_modules/
+
+# Claude Code 内部ファイル
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

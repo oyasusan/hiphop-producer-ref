@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>HipHop Producer Ref</title>
+<style>
+:root {
+  --bg: #0c0c0c;
+  --card: #181818;
+  --card2: #1e1e1e;
+  --accent: #ff6b35;
+  --gold: #f5c518;
+  --green: #4caf50;
+  --text: #f0f0f0;
+  --muted: #888;
+  --border: #2a2a2a;
+  --modal: #111;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: 60px;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(160deg, #130900 0%, #0c0c0c 60%);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 16px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.logo-text { font-size:19px; font-weight:800; color:var(--accent); letter-spacing:-0.3px; }
+.logo-sub { font-size:10px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; }
+.search-wrap { position:relative; }
+.search-input {
+  width:100%; padding:10px 14px 10px 38px;
+  background:#222; border:1px solid var(--border);
+  border-radius:10px; color:var(--text); font-size:15px; outline:none;
+}
+.search-input::placeholder { color:var(--muted); }
+.search-input:focus { border-color:var(--accent); }
+.search-ico { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; pointer-events:none; }
+
+/* FILTERS */
+.filters { padding:10px 0 4px; background:var(--bg); }
+.filter-group { margin-bottom:8px; }
+.filter-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; padding:0 16px; margin-bottom:5px; }
+.chips { display:flex; gap:6px; overflow-x:auto; padding:0 16px 2px; scrollbar-width:none; }
+.chips::-webkit-scrollbar { display:none; }
+.chip {
+  flex-shrink:0; padding:5px 13px; border-radius:20px;
+  border:1px solid var(--border); background:transparent;
+  color:var(--muted); font-size:12px; cursor:pointer;
+  white-space:nowrap; transition:all .15s;
+}
+.chip.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+
+/* RESULTS INFO */
+.info-bar { padding:8px 16px; font-size:12px; color:var(--muted); }
+
+/* GRID */
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:4px 16px 16px; }
+.card {
+  background:var(--card); border-radius:12px; padding:13px 11px;
+  cursor:pointer; border:1px solid var(--border);
+  transition:transform .15s, border-color .15s;
+  position:relative; overflow:hidden;
+}
+.card:active { transform:scale(.97); border-color:var(--accent); }
+.card-accent { position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent); }
+.card-name { font-size:14px; font-weight:700; line-height:1.2; }
+.card-alias { font-size:10px; color:var(--muted); margin-top:2px; }
+.card-era {
+  display:inline-block; margin-top:7px; padding:2px 7px;
+  background:rgba(255,107,53,.18); border-radius:4px;
+  font-size:10px; color:var(--accent); font-weight:700;
+}
+.card-region { font-size:10px; color:var(--muted); margin-top:3px; }
+.card-tags { display:flex; flex-wrap:wrap; gap:3px; margin-top:7px; }
+.card-tag { padding:2px 6px; border-radius:3px; background:#252525; font-size:9px; color:#999; }
+.card-bpm { margin-top:7px; font-size:11px; color:var(--gold); font-weight:700; }
+.no-result { grid-column:1/-1; text-align:center; padding:50px 20px; color:var(--muted); font-size:14px; }
+
+/* MODAL */
+.overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.75); z-index:200; backdrop-filter:blur(3px);
+}
+.overlay.on { display:block; }
+.modal {
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--modal); border-radius:22px 22px 0 0;
+  max-height:92vh; overflow-y:auto; z-index:300;
+  transform:translateY(100%); transition:transform .3s cubic-bezier(.22,.61,.36,1);
+}
+.modal.on { transform:translateY(0); }
+.modal-handle { width:38px; height:4px; background:#333; border-radius:2px; margin:12px auto 0; }
+.modal-body { padding:16px 18px 50px; }
+
+.m-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.m-name { font-size:24px; font-weight:800; line-height:1.1; }
+.m-alias { font-size:13px; color:var(--muted); margin-top:3px; }
+.m-close {
+  background:#2a2a2a; border:none; color:var(--text);
+  width:30px; height:30px; border-radius:50%; font-size:16px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; margin-top:2px;
+}
+
+.m-badges { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+.badge { padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; }
+.b-era { background:rgba(255,107,53,.18); color:var(--accent); }
+.b-region { background:rgba(245,197,24,.13); color:var(--gold); }
+.b-bpm { background:rgba(76,175,80,.13); color:#6dd96d; }
+
+.sec-title { font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin:18px 0 8px; }
+.m-desc { font-size:13px; color:#ccc; line-height:1.65; }
+.sound-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.sound-tag { padding:5px 10px; background:#252525; border-radius:7px; font-size:12px; color:#bbb; border:1px solid #333; }
+.artists { font-size:13px; color:#bbb; line-height:1.9; }
+
+/* SUNO PROMPTS */
+.tabs { display:flex; gap:6px; margin-bottom:14px; }
+.tab {
+  flex:1; padding:8px 6px; border-radius:8px; border:1px solid var(--border);
+  background:transparent; color:var(--muted); font-size:11px; cursor:pointer;
+  font-weight:600; text-align:center; transition:all .15s;
+}
+.tab.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+.prompt-block {
+  background:#1a1a1a; border-radius:12px; padding:14px; margin-bottom:12px;
+  border:1px solid #2e2e2e;
+}
+.prompt-type-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--accent); font-weight:700; margin-bottom:10px; }
+.prompt-row-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; margin-top:10px; }
+.prompt-text {
+  font-size:12px; color:#ddd; background:#111; padding:9px 11px;
+  border-radius:8px; line-height:1.55; word-break:break-word;
+  font-family: 'Courier New', monospace; border:1px solid #222;
+  margin-bottom:8px;
+}
+.copy-btn {
+  width:100%; padding:9px; background:var(--accent); border:none;
+  border-radius:8px; color:#fff; font-size:12px; font-weight:700;
+  cursor:pointer; letter-spacing:.3px; transition:background .15s;
+}
+.copy-btn:active { background:#d4562a; }
+.copy-btn.copied { background:var(--green); }
+
+/* FAB */
+.fab {
+  position:fixed; bottom:22px; right:18px;
+  width:52px; height:52px; border-radius:50%;
+  background:var(--accent); border:none; color:#fff;
+  font-size:30px; line-height:1; cursor:pointer;
+  box-shadow:0 4px 20px rgba(255,107,53,.5);
+  z-index:150; display:flex; align-items:center; justify-content:center;
+  transition:transform .15s;
+}
+.fab:active { transform:scale(.93); }
+
+/* ADD MODAL */
+.add-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.8); z-index:400; backdrop-filter:blur(3px);
+}
+.add-overlay.on { display:block; }
+.add-modal {
+  position:fixed; inset:0; background:#111; z-index:500;
+  display:flex; flex-direction:column;
+  transform:translateY(100%); transition:transform .3s cubic-bezier(.22,.61,.36,1);
+}
+.add-modal.on { transform:translateY(0); }
+.add-head {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 18px; border-bottom:1px solid var(--border); flex-shrink:0;
+  background:#161616;
+}
+.add-title { font-size:16px; font-weight:700; }
+.add-body { flex:1; overflow-y:auto; padding:18px 18px 0; }
+.add-foot { padding:12px 18px 28px; border-top:1px solid var(--border); flex-shrink:0; }
+
+/* FORM ELEMENTS */
+.fg { margin-bottom:14px; }
+.fl {
+  font-size:10px; color:var(--muted); text-transform:uppercase;
+  letter-spacing:1px; margin-bottom:5px; display:block;
+}
+.req { color:var(--accent); }
+.fi {
+  width:100%; padding:10px 12px; background:#1e1e1e;
+  border:1px solid #333; border-radius:8px; color:var(--text);
+  font-size:14px; outline:none; font-family:inherit;
+}
+.fi:focus { border-color:var(--accent); }
+.fta {
+  width:100%; padding:10px 12px; background:#1e1e1e;
+  border:1px solid #333; border-radius:8px; color:var(--text);
+  font-size:13px; outline:none; resize:vertical; line-height:1.5;
+  font-family:inherit; min-height:72px;
+}
+.fta:focus { border-color:var(--accent); }
+.fsel {
+  width:100%; padding:10px 12px; background:#1e1e1e;
+  border:1px solid #333; border-radius:8px; color:var(--text);
+  font-size:14px; outline:none; -webkit-appearance:none;
+}
+.fsel:focus { border-color:var(--accent); }
+
+/* TOGGLE CHIPS IN FORM */
+.tchips { display:flex; flex-wrap:wrap; gap:6px; }
+.tchip {
+  padding:5px 12px; border-radius:20px; border:1px solid #333;
+  background:transparent; color:var(--muted); font-size:12px;
+  cursor:pointer; white-space:nowrap; transition:all .15s;
+}
+.tchip.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* FORM SECTION DIVIDER */
+.fsec { margin:20px 0 12px; padding-top:16px; border-top:1px solid #222; }
+.fsec-title {
+  font-size:10px; text-transform:uppercase; letter-spacing:1.5px;
+  color:var(--accent); font-weight:700; margin-bottom:12px;
+}
+
+/* PROMPT FORM BLOCK */
+.pfblock { background:#1a1a1a; border-radius:10px; padding:12px 12px 14px; margin-bottom:10px; border:1px solid #2a2a2a; }
+.pftype { font-size:10px; color:var(--gold); font-weight:700; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px; }
+
+/* SUBMIT / DELETE */
+.submit-btn {
+  width:100%; padding:14px; background:var(--accent); border:none;
+  border-radius:10px; color:#fff; font-size:15px; font-weight:700; cursor:pointer;
+}
+.submit-btn:active { background:#d4562a; }
+.del-btn {
+  width:100%; padding:12px; background:transparent;
+  border:1px solid #c0392b; border-radius:8px;
+  color:#e74c3c; font-size:13px; font-weight:600; cursor:pointer; margin-top:14px;
+}
+.del-btn:active { background:rgba(231,76,60,.1); }
+
+/* CUSTOM BADGE */
+.custom-badge {
+  display:inline-block; padding:1px 6px;
+  background:rgba(245,197,24,.18); border-radius:3px;
+  font-size:9px; color:var(--gold); font-weight:700; margin-left:4px;
+}
+
+/* FORM ERROR */
+.ferr { font-size:12px; color:#e74c3c; margin-top:6px; display:none; }
+.ferr.on { display:block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span style="font-size:22px">🎛️</span>
+    <div>
+      <div class="logo-text">HipHop Producer Ref</div>
+      <div class="logo-sub">Suno ループ生成サポート</div>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-ico">🔍</span>
+    <input class="search-input" type="search" placeholder="プロデューサー名で検索..." id="searchInput" autocomplete="off">
+  </div>
+</div>
+
+<div class="filters">
+  <div class="filter-group">
+    <div class="filter-label">年代</div>
+    <div class="chips" id="eraChips">
+      <button class="chip on" data-v="">全て</button>
+      <button class="chip" data-v="80s">80s</button>
+      <button class="chip" data-v="90s">90s</button>
+      <button class="chip" data-v="2000s">2000s</button>
+      <button class="chip" data-v="2010s">2010s</button>
+      <button class="chip" data-v="2020s">2020s</button>
+    </div>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">スタイル</div>
+    <div class="chips" id="styleChips">
+      <button class="chip on" data-v="">全て</button>
+      <button class="chip" data-v="boom bap">ブームバップ</button>
+      <button class="chip" data-v="trap">トラップ</button>
+      <button class="chip" data-v="g-funk">Gファンク</button>
+      <button class="chip" data-v="lo-fi">ロウファイ</button>
+      <button class="chip" data-v="jazzy">ジャジー</button>
+      <button class="chip" data-v="south">サウス</button>
+      <button class="chip" data-v="alternative">オルタナ</button>
+      <button class="chip" data-v="neo soul">ネオソウル</button>
+      <button class="chip" data-v="crunk">クランク</button>
+    </div>
+  </div>
+  <div class="filter-group">
+    <div class="filter-label">地域</div>
+    <div class="chips" id="regionChips">
+      <button class="chip on" data-v="">全て</button>
+      <button class="chip" data-v="East Coast">East Coast</button>
+      <button class="chip" data-v="West Coast">West Coast</button>
+      <button class="chip" data-v="South">South</button>
+      <button class="chip" data-v="Midwest">Midwest</button>
+    </div>
+  </div>
+</div>
+
+<div class="info-bar" id="infoBar"></div>
+<div class="grid" id="grid"></div>
+
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+<div class="modal" id="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-body" id="modalBody"></div>
+</div>
+
+<button class="fab" onclick="openAddModal()" title="プロデューサーを追加">＋</button>
+
+<div class="add-overlay" id="addOverlay" onclick="closeAddModal()"></div>
+<div class="add-modal" id="addModal">
+  <div class="add-head">
+    <span class="add-title">✏️ プロデューサーを追加</span>
+    <button class="m-close" onclick="closeAddModal()">✕</button>
+  </div>
+  <div class="add-body" id="addBody">
+
+    <div class="fg">
+      <label class="fl">名前 <span class="req">*</span></label>
+      <input id="f-name" class="fi" type="text" placeholder="例: DJ Premier">
+      <div class="ferr" id="err-name">名前は必須です</div>
+    </div>
+    <div class="fg">
+      <label class="fl">別名・ニックネーム</label>
+      <input id="f-alias" class="fi" type="text" placeholder="例: Premo">
+    </div>
+    <div class="fg">
+      <label class="fl">活動都市</label>
+      <input id="f-city" class="fi" type="text" placeholder="例: Brooklyn, NY">
+    </div>
+    <div class="fg">
+      <label class="fl">BPM範囲</label>
+      <input id="f-bpm" class="fi" type="text" placeholder="例: 84–96">
+    </div>
+
+    <div class="fg">
+      <label class="fl">年代 <span class="req">*</span></label>
+      <div class="tchips" id="era-chips">
+        <button type="button" class="tchip" data-v="80s">80s</button>
+        <button type="button" class="tchip" data-v="90s">90s</button>
+        <button type="button" class="tchip" data-v="2000s">2000s</button>
+        <button type="button" class="tchip" data-v="2010s">2010s</button>
+        <button type="button" class="tchip" data-v="2020s">2020s</button>
+      </div>
+      <div class="ferr" id="err-era">年代を1つ以上選択してください</div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">スタイル <span class="req">*</span></label>
+      <div class="tchips" id="style-chips">
+        <button type="button" class="tchip" data-v="boom bap">ブームバップ</button>
+        <button type="button" class="tchip" data-v="trap">トラップ</button>
+        <button type="button" class="tchip" data-v="g-funk">Gファンク</button>
+        <button type="button" class="tchip" data-v="lo-fi">ロウファイ</button>
+        <button type="button" class="tchip" data-v="jazzy">ジャジー</button>
+        <button type="button" class="tchip" data-v="south">サウス</button>
+        <button type="button" class="tchip" data-v="alternative">オルタナ</button>
+        <button type="button" class="tchip" data-v="neo soul">ネオソウル</button>
+        <button type="button" class="tchip" data-v="crunk">クランク</button>
+        <button type="button" class="tchip" data-v="drill">ドリル</button>
+        <button type="button" class="tchip" data-v="underground">アンダーグラウンド</button>
+        <button type="button" class="tchip" data-v="west coast">ウェストコースト</button>
+      </div>
+      <div class="ferr" id="err-style">スタイルを1つ以上選択してください</div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">地域</label>
+      <select id="f-region" class="fsel">
+        <option value="">選択してください</option>
+        <option value="East Coast">East Coast</option>
+        <option value="West Coast">West Coast</option>
+        <option value="South">South</option>
+        <option value="Midwest">Midwest</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="fg">
+      <label class="fl">説明（日本語）</label>
+      <textarea id="f-desc" class="fta" placeholder="プロデューサーの特徴・背景を自由に記述..."></textarea>
+    </div>
+
+    <div class="fg">
+      <label class="fl">シグネチャーサウンド（カンマ区切り）</label>
+      <input id="f-sounds" class="fi" type="text" placeholder="例: チョップサンプル, ハードドラム, バイナルノイズ">
+    </div>
+
+    <div class="fg">
+      <label class="fl">代表アーティスト（カンマ区切り）</label>
+      <input id="f-artists" class="fi" type="text" placeholder="例: Nas, Jay-Z, Biggie">
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-title">🎛️ Sunoプロンプト（任意）</div>
+
+      <div class="pfblock">
+        <div class="pftype">① クラシック</div>
+        <div class="fg">
+          <label class="fl">スタイルタグ（Style欄）</label>
+          <input id="f-p1-style" class="fi" type="text" placeholder="例: 90s boom bap hip hop, dark, gritty">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">詳細プロンプト（Lyrics欄）</label>
+          <textarea id="f-p1-detail" class="fta" placeholder="例: [Instrumental] chopped jazz samples, hard MPC drums, 88 BPM..."></textarea>
+        </div>
+      </div>
+
+      <div class="pfblock">
+        <div class="pftype">② モダン</div>
+        <div class="fg">
+          <label class="fl">スタイルタグ（Style欄）</label>
+          <input id="f-p2-style" class="fi" type="text" placeholder="モダン版スタイルタグ">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">詳細プロンプト（Lyrics欄）</label>
+          <textarea id="f-p2-detail" class="fta" placeholder="モダン版詳細プロンプト"></textarea>
+        </div>
+      </div>
+
+      <div class="pfblock">
+        <div class="pftype">③ 実験的</div>
+        <div class="fg">
+          <label class="fl">スタイルタグ（Style欄）</label>
+          <input id="f-p3-style" class="fi" type="text" placeholder="実験版スタイルタグ">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">詳細プロンプト（Lyrics欄）</label>
+          <textarea id="f-p3-detail" class="fta" placeholder="実験版詳細プロンプト"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+  <div class="add-foot">
+    <button class="submit-btn" onclick="submitProducer()">追加する</button>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let cache = [];           // all producers from server
+let activeProd = null;
+let activeTab  = 0;
+let fEra = '', fStyle = '', fRegion = '', fSearch = '';
+const formEras   = new Set();
+const formStyles = new Set();
+
+// ── API helper ─────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── Filter chips ───────────────────────────────────────────────────────────
+function setupChips(id, setter) {
+  document.getElementById(id).querySelectorAll('.chip').forEach(c =>
+    c.addEventListener('click', () => {
+      document.getElementById(id).querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+      c.classList.add('on'); setter(c.dataset.v); render();
+    })
+  );
+}
+setupChips('eraChips',    v => fEra    = v);
+setupChips('styleChips',  v => fStyle  = v);
+setupChips('regionChips', v => fRegion = v);
+document.getElementById('searchInput').addEventListener('input', e => {
+  fSearch = e.target.value.toLowerCase().trim(); render();
+});
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function matches(p) {
+  if (fSearch  && !p.name.toLowerCase().includes(fSearch) && !(p.alias||'').toLowerCase().includes(fSearch)) return false;
+  if (fEra     && !p.eras.includes(fEra))    return false;
+  if (fStyle   && !p.styles.includes(fStyle)) return false;
+  if (fRegion  && p.region !== fRegion)       return false;
+  return true;
+}
+
+function render() {
+  const list = cache.filter(matches);
+  const cc   = list.filter(p => p.custom).length;
+  document.getElementById('infoBar').textContent =
+    `${list.length} 件のプロデューサーが見つかりました` + (cc ? `（うちカスタム ${cc} 件）` : '');
+  const g = document.getElementById('grid');
+  if (!list.length) {
+    g.innerHTML = '<div class="no-result">見つかりません<br>フィルターを変更してください</div>';
+    return;
+  }
+  g.innerHTML = list.map(p => `
+    <div class="card" onclick="openModal(${p.id})">
+      <div class="card-accent"></div>
+      <div class="card-name">${p.name}${p.custom ? '<span class="custom-badge">カスタム</span>' : ''}</div>
+      <div class="card-alias">${p.alias || ''}</div>
+      <span class="card-era">${p.eras.join(' · ')}</span>
+      <div class="card-region">📍 ${p.city || p.region || ''}</div>
+      <div class="card-tags">${p.styles.slice(0,3).map(s => `<span class="card-tag">${s}</span>`).join('')}</div>
+      <div class="card-bpm">♩ ${p.bpm || '—'} BPM</div>
+    </div>
+  `).join('');
+}
+
+// ── Detail modal ───────────────────────────────────────────────────────────
+function openModal(id) {
+  activeProd = cache.find(p => p.id === id);
+  activeTab  = 0;
+  buildModal();
+  document.getElementById('overlay').classList.add('on');
+  document.getElementById('modal').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('on');
+  document.getElementById('modal').classList.remove('on');
+  document.body.style.overflow = '';
+}
+function buildModal() {
+  const p = activeProd;
+  const soundsHtml  = (p.sounds  || []).length ? p.sounds.map(s => `<span class="sound-tag">${s}</span>`).join('') : '<span style="color:var(--muted);font-size:13px">未設定</span>';
+  const artistsHtml = (p.artists || []).length ? p.artists.join(' ／ ') : '<span style="color:var(--muted)">未設定</span>';
+  const hasPrompts  = (p.prompts || []).some(pr => pr.style || pr.detail);
+  const deleteBtn   = p.custom ? `<button class="del-btn" onclick="deleteProducer(${p.id})">🗑️ このプロデューサーを削除</button>` : '';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="m-header">
+      <div>
+        <div class="m-name">${p.name}${p.custom ? '<span class="custom-badge">カスタム</span>' : ''}</div>
+        <div class="m-alias">${p.alias || ''}</div>
+      </div>
+      <button class="m-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="m-badges">
+      ${p.eras.map(e => `<span class="badge b-era">${e}</span>`).join('')}
+      ${p.region ? `<span class="badge b-region">📍 ${p.region}</span>` : ''}
+      ${p.bpm    ? `<span class="badge b-bpm">♩ ${p.bpm} BPM</span>`   : ''}
+    </div>
+    <div class="m-desc">${p.desc || '説明なし'}</div>
+    <div class="sec-title">シグネチャーサウンド</div>
+    <div class="sound-tags">${soundsHtml}</div>
+    <div class="sec-title">代表作アーティスト</div>
+    <div class="artists">${artistsHtml}</div>
+    <div class="sec-title">Suno プロンプト生成</div>
+    ${hasPrompts ? `
+      <div class="tabs" id="tabs">
+        ${p.prompts.map((pr,i) => `<button class="tab ${i===0?'on':''}" onclick="switchTab(${i})">${['クラシック','モダン','実験的'][i]}</button>`).join('')}
+      </div>
+      <div id="promptArea"></div>` :
+      `<div style="color:var(--muted);font-size:13px;padding:4px 0">プロンプトが設定されていません</div>`
+    }
+    ${deleteBtn}
+  `;
+  if (hasPrompts) renderPrompt();
+}
+function renderPrompt() {
+  const pr = activeProd.prompts[activeTab];
+  document.getElementById('promptArea').innerHTML = `
+    <div class="prompt-block">
+      <div class="prompt-type-label">${pr.type}</div>
+      <div class="prompt-row-label">🎨 スタイル入力欄（Style）にコピー</div>
+      <div class="prompt-text" id="st">${pr.style  || '（未設定）'}</div>
+      <button class="copy-btn" onclick="doCopy('st',this)">📋 スタイルをコピー</button>
+      <div class="prompt-row-label" style="margin-top:12px">📝 詳細プロンプト（Lyrics欄）にコピー</div>
+      <div class="prompt-text" id="dt">${pr.detail || '（未設定）'}</div>
+      <button class="copy-btn" onclick="doCopy('dt',this)">📋 プロンプトをコピー</button>
+    </div>
+  `;
+}
+function switchTab(i) {
+  activeTab = i;
+  document.getElementById('tabs').querySelectorAll('.tab').forEach((t,idx) => t.classList.toggle('on', idx===i));
+  renderPrompt();
+}
+function doCopy(id, btn) {
+  const txt = document.getElementById(id).textContent;
+  if (txt.startsWith('（')) return;
+  const orig = btn.textContent;
+  const done = () => {
+    btn.textContent = '✅ コピーしました！'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  };
+  navigator.clipboard ? navigator.clipboard.writeText(txt).then(done).catch(() => fallback(txt,done)) : fallback(txt,done);
+}
+function fallback(txt, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta); cb();
+}
+
+// ── Add modal ──────────────────────────────────────────────────────────────
+function openAddModal() {
+  resetForm();
+  document.getElementById('addOverlay').classList.add('on');
+  document.getElementById('addModal').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('era-chips').querySelectorAll('.tchip').forEach(c => {
+    c.onclick = () => { c.classList.toggle('on'); c.classList.contains('on') ? formEras.add(c.dataset.v) : formEras.delete(c.dataset.v); };
+  });
+  document.getElementById('style-chips').querySelectorAll('.tchip').forEach(c => {
+    c.onclick = () => { c.classList.toggle('on'); c.classList.contains('on') ? formStyles.add(c.dataset.v) : formStyles.delete(c.dataset.v); };
+  });
+}
+function closeAddModal() {
+  document.getElementById('addOverlay').classList.remove('on');
+  document.getElementById('addModal').classList.remove('on');
+  document.body.style.overflow = '';
+}
+function resetForm() {
+  ['f-name','f-alias','f-city','f-bpm','f-sounds','f-artists',
+   'f-p1-style','f-p1-detail','f-p2-style','f-p2-detail','f-p3-style','f-p3-detail']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('f-desc').value   = '';
+  document.getElementById('f-region').value = '';
+  document.querySelectorAll('#era-chips .tchip, #style-chips .tchip').forEach(c => c.classList.remove('on'));
+  document.querySelectorAll('.ferr').forEach(e => e.classList.remove('on'));
+  formEras.clear(); formStyles.clear();
+  document.getElementById('addBody').scrollTop = 0;
+}
+function parseCSV(str) { return str.split(',').map(s => s.trim()).filter(Boolean); }
+
+async function submitProducer() {
+  let ok = true;
+  const name = document.getElementById('f-name').value.trim();
+  if (!name)          { document.getElementById('err-name').classList.add('on');  ok = false; }
+  else                  document.getElementById('err-name').classList.remove('on');
+  if (!formEras.size)  { document.getElementById('err-era').classList.add('on');   ok = false; }
+  else                  document.getElementById('err-era').classList.remove('on');
+  if (!formStyles.size){ document.getElementById('err-style').classList.add('on'); ok = false; }
+  else                  document.getElementById('err-style').classList.remove('on');
+  if (!ok) { document.getElementById('addBody').scrollTop = 0; return; }
+
+  const g = id => document.getElementById(id).value.trim();
+  const payload = {
+    name, alias: g('f-alias'), city: g('f-city'), bpm: g('f-bpm'),
+    eras: [...formEras], styles: [...formStyles], region: g('f-region'),
+    desc: g('f-desc'),
+    sounds:  parseCSV(g('f-sounds')),
+    artists: parseCSV(g('f-artists')),
+    prompts: [
+      { type:'クラシック（カスタム）', style:g('f-p1-style'), detail:g('f-p1-detail') },
+      { type:'モダン（カスタム）',     style:g('f-p2-style'), detail:g('f-p2-detail') },
+      { type:'実験的（カスタム）',     style:g('f-p3-style'), detail:g('f-p3-detail') },
+    ]
+  };
+
+  const btn = document.querySelector('.submit-btn');
+  btn.textContent = '追加中...'; btn.disabled = true;
+  try {
+    const newP = await api('/api/producers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    cache.push(newP);
+    closeAddModal();
+    render();
+    setTimeout(() => {
+      const card = document.querySelector(`[onclick="openModal(${newP.id})"]`);
+      if (card) { card.style.borderColor = 'var(--accent)'; setTimeout(() => card.style.borderColor='', 1500); }
+    }, 100);
+  } catch(e) {
+    alert('追加に失敗しました。サーバーが起動しているか確認してください。');
+  } finally {
+    btn.textContent = '追加する'; btn.disabled = false;
+  }
+}
+
+async function deleteProducer(id) {
+  if (!confirm('このプロデューサーを削除しますか？')) return;
+  try {
+    await api(`/api/producers/${id}`, { method: 'DELETE' });
+    cache = cache.filter(p => p.id !== id);
+    closeModal();
+    render();
+  } catch(e) {
+    alert('削除に失敗しました。');
+  }
+}
+
+// ── Data loading ───────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    cache = await api('/api/producers');
+    render();
+  } catch(e) {
+    document.getElementById('infoBar').textContent = '';
+    document.getElementById('grid').innerHTML = `
+      <div class="no-result">
+        ⚠️ サーバーに接続できません<br>
+        <span style="font-size:11px;margin-top:8px;display:block">
+          ターミナルで <strong>npm start</strong> を実行してください
+        </span>
+      </div>`;
+  }
+}
+
+document.getElementById('infoBar').textContent = '読み込み中...';
+document.getElementById('grid').innerHTML = '<div class="no-result" style="padding:30px">⏳ データを読み込んでいます...</div>';
+loadData();
+
+// ── DUMMY anchor for edit tool (not rendered) ──────────────────────────────
+</script>
+</body>
+</html>

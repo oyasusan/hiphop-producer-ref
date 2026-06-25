@@ -1,0 +1,13 @@
+{
+  "name": "hiphop-producer-ref",
+  "version": "1.0.0",
+  "description": "HipHop Producer Reference for Suno loop generation",
+  "main": "server.js",
+  "scripts": {
+    "start": "NODE_PATH=/home/yasuosanlkz/hiphop-modules/node_modules node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sql.js": "^1.11.0"
+  }
+}
